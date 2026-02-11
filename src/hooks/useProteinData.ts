@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { fetchPDBFile, fetchProteinMetadata } from '@/lib/api/rcsb';
+import { proteinCache } from '@/lib/cache/protein-cache';
 import { ProteinMetadata } from '@/types/protein';
 
 export function useProteinData(pdbId: string | null) {
@@ -25,10 +26,35 @@ export function useProteinData(pdbId: string | null) {
       setError(null);
 
       try {
-        const [pdb, meta] = await Promise.all([
-          fetchPDBFile(pdbId),
-          fetchProteinMetadata(pdbId),
+        // Try to get from cache first
+        const [cachedPdb, cachedMeta] = await Promise.all([
+          proteinCache.getPDBFile(pdbId),
+          proteinCache.getMetadata(pdbId),
         ]);
+
+        // If both are in cache, use them immediately
+        if (cachedPdb && cachedMeta) {
+          if (!cancelled) {
+            setPdbData(cachedPdb);
+            setMetadata(cachedMeta);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        // Fetch from network
+        const [pdb, meta] = await Promise.all([
+          cachedPdb || fetchPDBFile(pdbId),
+          cachedMeta || fetchProteinMetadata(pdbId),
+        ]);
+
+        // Cache the results for future use
+        if (!cachedPdb) {
+          proteinCache.setPDBFile(pdbId, pdb);
+        }
+        if (!cachedMeta) {
+          proteinCache.setMetadata(pdbId, meta);
+        }
 
         if (!cancelled) {
           setPdbData(pdb);

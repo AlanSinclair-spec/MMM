@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import ProteinViewer3D from '@/components/explore/ProteinViewer3D';
+import ProteinViewer3D, { ProteinViewer3DRef } from '@/components/explore/ProteinViewer3D';
 import VisualizationControls from '@/components/explore/VisualizationControls';
-import { VisualizationStyle, ProteinMetadata } from '@/types/protein';
+import ColorSchemeSelector from '@/components/explore/ColorSchemeSelector';
+import { ExportButton } from '@/components/shared/ExportButton';
+import { useExportImage } from '@/hooks/useExportImage';
+import { generateProteinFilename } from '@/lib/export/image-exporter';
+import { VisualizationStyle, ColorScheme, ProteinMetadata } from '@/types/protein';
 
 interface ViewerPanelData {
   pdbData: string | null;
@@ -20,6 +24,17 @@ interface DualViewerPanelProps {
 
 function SingleViewerColumn({ data, label }: { data: ViewerPanelData; label: string }) {
   const [style, setStyle] = useState<VisualizationStyle>('cartoon');
+  const [colorScheme, setColorScheme] = useState<ColorScheme>('spectrum');
+  const viewerRef = useRef<ProteinViewer3DRef>(null);
+  const { exportImage, isExporting } = useExportImage();
+
+  const handleExport = async () => {
+    const viewer = viewerRef.current?.getViewer();
+    if (!viewer || !data.metadata?.structureId) return;
+
+    const filename = generateProteinFilename(data.metadata.structureId, style);
+    await exportImage(viewer, { format: 'png', filename });
+  };
 
   return (
     <div className="space-y-3">
@@ -34,7 +49,22 @@ function SingleViewerColumn({ data, label }: { data: ViewerPanelData; label: str
         )}
       </div>
 
-      <VisualizationControls style={style} onStyleChange={setStyle} />
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <VisualizationControls style={style} onStyleChange={setStyle} />
+        {data.pdbData && (
+          <ExportButton
+            onClick={handleExport}
+            isExporting={isExporting}
+            size="sm"
+            showLabel={false}
+          />
+        )}
+      </div>
+
+      <ColorSchemeSelector
+        scheme={colorScheme}
+        onSchemeChange={setColorScheme}
+      />
 
       {data.isLoading && !data.pdbData && (
         <div className="w-full h-[300px] sm:h-[400px] lg:h-[500px] rounded-xl border border-border/50 flex items-center justify-center bg-card/30">
@@ -58,7 +88,12 @@ function SingleViewerColumn({ data, label }: { data: ViewerPanelData; label: str
 
       {data.pdbData && (
         <div className="[&>div>div]:!h-[300px] sm:[&>div>div]:!h-[400px] lg:[&>div>div]:!h-[500px]">
-          <ProteinViewer3D pdbData={data.pdbData} style={style} />
+          <ProteinViewer3D
+            ref={viewerRef}
+            pdbData={data.pdbData}
+            style={style}
+            colorScheme={colorScheme}
+          />
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ import './globals.css';
 import Navigation from '@/components/shared/Navigation';
 import Footer from '@/components/shared/Footer';
 import PageTransition from '@/components/shared/PageTransition';
+import { ThemeProvider } from '@/components/shared/ThemeProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -29,17 +30,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <Navigation />
-        <main className="flex-1">
-          <PageTransition>
-            {children}
-          </PageTransition>
-        </main>
-        <Footer />
+        <ThemeProvider>
+          <Navigation />
+          <main className="flex-1">
+            <PageTransition>
+              {children}
+            </PageTransition>
+          </main>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );

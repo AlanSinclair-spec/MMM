@@ -1,8 +1,11 @@
 'use client';
 
+import { FileDown } from 'lucide-react';
 import { ProteinMetadata } from '@/types/protein';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { exportComparisonToCSV } from '@/lib/export/csv-exporter';
 import { cn } from '@/lib/utils';
 
 interface ComparisonTableProps {
@@ -60,15 +63,30 @@ export default function ComparisonTable({ metadataA, metadataB, isLoading }: Com
   const formatWeight = (w: number) => w ? `${(w / 1000).toFixed(1)} kDa` : 'N/A';
   const formatResolution = (r: number | null) => r ? `${r.toFixed(2)} \u00C5` : 'N/A';
 
+  const handleExport = () => {
+    exportComparisonToCSV(metadataA, metadataB);
+  };
+
   return (
     <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
-      <div className="px-5 py-4">
-        <h3 className="text-base font-semibold text-foreground">
-          Structural Comparison
-        </h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          {metadataA.structureId} vs {metadataB.structureId}
-        </p>
+      <div className="px-5 py-4 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">
+            Structural Comparison
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {metadataA.structureId} vs {metadataB.structureId}
+          </p>
+        </div>
+        <Button
+          onClick={handleExport}
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+        >
+          <FileDown className="h-4 w-4 mr-1.5" />
+          Export CSV
+        </Button>
       </div>
       <Separator className="opacity-50" />
       <div className="overflow-x-auto">

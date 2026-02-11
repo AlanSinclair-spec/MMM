@@ -1,26 +1,91 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import ProteinSearch from '@/components/explore/ProteinSearch';
 import FeaturedProteins from '@/components/explore/FeaturedProteins';
-import ProteinViewer3D from '@/components/explore/ProteinViewer3D';
+import ProteinViewer3D, { ProteinViewer3DRef } from '@/components/explore/ProteinViewer3D';
 import VisualizationControls from '@/components/explore/VisualizationControls';
+import ColorSchemeSelector from '@/components/explore/ColorSchemeSelector';
 import ProteinInfoSidebar from '@/components/explore/ProteinInfoSidebar';
+import MeasurementPanel from '@/components/explore/MeasurementPanel';
+import { ExportButton } from '@/components/shared/ExportButton';
+import { KeyboardHelp } from '@/components/shared/KeyboardHelp';
 import { useProteinData } from '@/hooks/useProteinData';
-import { VisualizationStyle } from '@/types/protein';
+import { useExportImage } from '@/hooks/useExportImage';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useMeasurementTool } from '@/hooks/useMeasurementTool';
+import { generateProteinFilename } from '@/lib/export/image-exporter';
+import { VisualizationStyle, ColorScheme } from '@/types/protein';
+import { COLOR_SCHEMES } from '@/lib/visualization/color-schemes';
 import { Button } from '@/components/ui/button';
+
+const VISUALIZATION_STYLES: VisualizationStyle[] = ['cartoon', 'stick', 'sphere', 'surface', 'line'];
 
 export default function ExplorePage() {
   const [selectedPdbId, setSelectedPdbId] = useState<string | null>(null);
   const [style, setStyle] = useState<VisualizationStyle>('cartoon');
+  const [colorScheme, setColorScheme] = useState<ColorScheme>('spectrum');
+  const viewerRef = useRef<ProteinViewer3DRef>(null);
 
   const { pdbData, metadata, isLoading, error } = useProteinData(selectedPdbId);
+  const { exportImage, isExporting, error: exportError } = useExportImage();
+  const {
+    measurements,
+    isActive: measurementActive,
+    selectedAtom,
+    addAtom,
+    removeMeasurement,
+    clearMeasurements,
+    toggleActive: toggleMeasurement,
+    clearSelection,
+  } = useMeasurementTool();
 
   const handleBack = () => {
     setSelectedPdbId(null);
     setStyle('cartoon');
+    setColorScheme('spectrum');
   };
+
+  const handleExport = async () => {
+    const viewer = viewerRef.current?.getViewer();
+    if (!viewer || !selectedPdbId) return;
+
+    const filename = generateProteinFilename(selectedPdbId, style);
+    await exportImage(viewer, { format: 'png', filename });
+  };
+
+  const cycleStyle = () => {
+    const currentIndex = VISUALIZATION_STYLES.indexOf(style);
+    const nextIndex = (currentIndex + 1) % VISUALIZATION_STYLES.length;
+    setStyle(VISUALIZATION_STYLES[nextIndex]);
+  };
+
+  const cycleColorScheme = () => {
+    const currentIndex = COLOR_SCHEMES.findIndex((s) => s.id === colorScheme);
+    const nextIndex = (currentIndex + 1) % COLOR_SCHEMES.length;
+    setColorScheme(COLOR_SCHEMES[nextIndex].id);
+  };
+
+  const resetView = () => {
+    const viewer = viewerRef.current?.getViewer();
+    if (!viewer) return;
+    viewer.zoomTo();
+    viewer.render();
+    viewer.zoom(1.2, 800);
+  };
+
+  // Keyboard shortcuts (only active when viewing a protein)
+  useKeyboardShortcuts({
+    shortcuts: [
+      { key: 'r', action: resetView, description: 'Reset camera view' },
+      { key: 's', action: cycleStyle, description: 'Cycle visualization styles' },
+      { key: 'c', action: cycleColorScheme, description: 'Cycle color schemes' },
+      { key: 'e', action: handleExport, description: 'Export current view' },
+      { key: 'm', action: toggleMeasurement, description: 'Toggle measurement mode' },
+    ],
+    enabled: !!pdbData,
+  });
 
   return (
     <div className="min-h-screen pt-20">
@@ -63,7 +128,27 @@ export default function ExplorePage() {
           >
             {/* Viewer + Controls */}
             <div className="lg:col-span-3 space-y-4">
-              <VisualizationControls style={style} onStyleChange={setStyle} />
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <VisualizationControls style={style} onStyleChange={setStyle} />
+                {pdbData && (
+                  <ExportButton
+                    onClick={handleExport}
+                    isExporting={isExporting}
+                    disabled={!pdbData}
+                  />
+                )}
+              </div>
+
+              <ColorSchemeSelector
+                scheme={colorScheme}
+                onSchemeChange={setColorScheme}
+              />
+
+              {exportError && (
+                <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
+                  {exportError}
+                </div>
+              )}
 
               {isLoading && !pdbData && (
                 <div className="w-full h-[350px] sm:h-[450px] lg:h-[600px] rounded-xl border border-border/50 flex items-center justify-center bg-card/30">
@@ -91,17 +176,36 @@ export default function ExplorePage() {
               )}
 
               {pdbData && (
-                <ProteinViewer3D pdbData={pdbData} style={style} />
+                <ProteinViewer3D
+                  ref={viewerRef}
+                  pdbData={pdbData}
+                  style={style}
+                  colorScheme={colorScheme}
+                  measurementMode={measurementActive}
+                  onAtomClick={addAtom}
+                  measurements={measurements}
+                />
               )}
             </div>
 
             {/* Sidebar */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-4">
               <ProteinInfoSidebar
                 metadata={metadata}
                 isLoading={isLoading}
                 error={error}
               />
+              {pdbData && (
+                <MeasurementPanel
+                  measurements={measurements}
+                  isActive={measurementActive}
+                  selectedAtom={selectedAtom}
+                  onToggle={toggleMeasurement}
+                  onRemove={removeMeasurement}
+                  onClear={clearMeasurements}
+                  onClearSelection={clearSelection}
+                />
+              )}
             </div>
           </motion.div>
         ) : (
