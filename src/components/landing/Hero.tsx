@@ -58,15 +58,6 @@ export default function Hero() {
                 Start Exploring
               </Button>
             </Link>
-            <Link href="/chat">
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-base px-8 py-6 border-border/50 hover:bg-secondary/80 transition-all duration-300 hover:scale-[1.02]"
-              >
-                Ask AI About Proteins
-              </Button>
-            </Link>
           </motion.div>
         </motion.div>
 

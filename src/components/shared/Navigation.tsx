@@ -5,14 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
-import { ThemeToggle } from './ThemeToggle';
 import { cn } from '@/lib/utils';
 
 const links = [
   { href: '/', label: 'Home' },
   { href: '/explore', label: 'Explore' },
   { href: '/compare', label: 'Compare' },
-  { href: '/chat', label: 'AI Chat' },
 ];
 
 export default function Navigation() {
@@ -50,14 +48,10 @@ export default function Navigation() {
                 {link.label}
               </Link>
             ))}
-            <div className="ml-2 pl-2 border-l border-border/50">
-              <ThemeToggle />
-            </div>
           </div>
 
-          {/* Mobile hamburger & theme toggle */}
+          {/* Mobile hamburger */}
           <div className="md:hidden flex items-center gap-2">
-            <ThemeToggle />
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"

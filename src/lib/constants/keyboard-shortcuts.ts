@@ -22,7 +22,6 @@ export const GLOBAL_SHORTCUTS: ShortcutDefinition[] = [
 
   // General
   { key: '?', description: 'Show keyboard shortcuts', category: 'general' },
-  { key: 't', description: 'Toggle theme', category: 'general' },
 ];
 
 /**

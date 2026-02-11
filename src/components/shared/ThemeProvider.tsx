@@ -9,14 +9,14 @@ interface ThemeProviderProps {
 
 /**
  * Theme provider component using next-themes
- * Enables dark/light mode switching with system preference detection
+ * Locked to dark mode
  */
 export function ThemeProvider({ children }: ThemeProviderProps) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="dark"
-      enableSystem
+      forcedTheme="dark"
+      enableSystem={false}
       disableTransitionOnChange={false}
     >
       {children}
